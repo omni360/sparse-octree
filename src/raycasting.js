@@ -1,3 +1,5 @@
+import THREE from "three";
+
 /**
  * A collection of utility functions for octree raycasting.
  *
@@ -6,9 +8,8 @@
  *  by J. Revelles et al. (2000).
  *
  * @class Raycasting
+ * @static
  */
-
-import THREE from "three";
 
 /**
  * Contains bytes used for bitwise operations. The last byte 
@@ -17,6 +18,7 @@ import THREE from "three";
  * @property flags
  * @type Uint8Array
  * @static
+ * @final
  */
 
 export const flags = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 0]);
@@ -137,12 +139,12 @@ export function getNextOctant(currentOctant, tx1, ty1, tz1) {
  *
  * @method testPoints
  * @static
- * @param {Raycaster} raycaster - The raycaster.
  * @param {Array} octants - An array containing octants that intersect with the ray.
+ * @param {Raycaster} raycaster - The raycaster.
  * @param {Array} intersects - An array to be filled with the intersecting points.
  */
 
-export function testPoints(raycaster, octants, intersects) {
+export function testPoints(octants, raycaster, intersects) {
 
 	const threshold = raycaster.params.Points.threshold;
 	const thresholdSq = threshold * threshold;
@@ -150,7 +152,7 @@ export function testPoints(raycaster, octants, intersects) {
 
 	let intersectPoint;
 	let distance, distanceToRay;
-	let rayPointDistanceSq = raycaster.ray.distanceSqToPoint(p);
+	let rayPointDistanceSq;
 
 	let i, j, il, jl;
 	let octant, dataSet, data;

@@ -3,6 +3,25 @@ import { flags, testPoints } from "./raycasting";
 import THREE from "three";
 
 /**
+ * A collection of vectors. Used for computations.
+ *
+ * @property vectors
+ * @type Array
+ * @private
+ * @static
+ * @final
+ */
+
+const vectors = [
+	new THREE.Vector3(),
+	new THREE.Vector3(),
+	new THREE.Vector3(),
+	new THREE.Vector3(),
+	new THREE.Vector3(),
+	new THREE.Vector3()
+];
+
+/**
  * An octree that subdivides 3D space into regular cells for 
  * fast spatial searches.
  *
@@ -17,13 +36,16 @@ import THREE from "three";
  * @param {Number} [bias=0.0] - A threshold for proximity checks.
  * @param {Number} [maxPoints=8] - Number of distinct points per octant before it's split up.
  * @param {Number} [maxDepth=8] - The maximum tree depth level, starting at 0.
+ * @param {Number} [minSize] - The minimum octant size.
  */
 
 export class Octree extends THREE.Object3D {
 
-	constructor(min, max, bias, maxPoints, maxDepth) {
+	constructor(min, max, bias, maxPoints, maxDepth, minSize) {
 
 		super();
+
+		this.name = "Octree";
 
 		/**
 		 * The root node.
@@ -40,6 +62,7 @@ export class Octree extends THREE.Object3D {
 		this.bias = bias;
 		this.maxDepth = maxDepth;
 		this.maxPoints = maxPoints;
+		this.minSize = minSize;
 
 	}
 
@@ -96,7 +119,7 @@ export class Octree extends THREE.Object3D {
 	 *
 	 * This value works together with the maximum depth as a secondary 
 	 * limiting factor. Smaller values cause splits to occur earlier 
-	 * and the tree to grow deep faster.
+	 * which results in a faster and deeper tree growth.
 	 *
 	 * @property maxPoints
 	 * @type Number
@@ -117,6 +140,33 @@ export class Octree extends THREE.Object3D {
 	}
 
 	/**
+	 * The minimum size of an octant.
+	 *
+	 * Octants won't split if their children would have a side 
+	 * that's smaller than the respective x, y or z minimum value.
+	 *
+	 * This value acts just like the maximum depth as a primary 
+	 * limiting factor.
+	 *
+	 * @property minSize
+	 * @type Vector3
+	 * @default Vector3(1e-12, 1e-12, 1e-12)
+	 */
+
+	get minSize() { return Octant.minSize; }
+
+	set minSize(x) {
+
+		if(x instanceof THREE.Vector3) {
+
+			Octant.minSize.copy(x).max(vectors[0].set(1e-12, 1e-12, 1e-12));
+			this.root.update();
+
+		}
+
+	}
+
+	/**
 	 * Adds a point to the tree.
 	 *
 	 * @method add
@@ -126,7 +176,7 @@ export class Octree extends THREE.Object3D {
 
 	add(p, data) {
 
-		if(this.root.intersects(p, this.bias)) {
+		if(this.root.containsPoint(p, this.bias)) {
 
 			this.root.add(p, data);
 
@@ -145,7 +195,7 @@ export class Octree extends THREE.Object3D {
 
 	addPoints(array, data) {
 
-		const v = new THREE.Vector3();
+		const v = vectors[0];
 
 		let i, l;
 
@@ -167,7 +217,7 @@ export class Octree extends THREE.Object3D {
 
 	remove(p, data) {
 
-		if(this.root.intersects(p, this.bias)) {
+		if(this.root.containsPoint(p, this.bias)) {
 
 			this.root.remove(p, data);
 
@@ -186,7 +236,7 @@ export class Octree extends THREE.Object3D {
 
 	removePoints(array, data) {
 
-		const v = new THREE.Vector3();
+		const v = vectors[0];
 
 		let i, l;
 
@@ -254,29 +304,28 @@ export class Octree extends THREE.Object3D {
 	}
 
 	/**
-	 * Finds the points that intersect with the given ray.
+	 * Finds the octants that intersect with the given ray.
 	 *
-	 * @method raycast
+	 * @method raycastOctants
 	 * @param {Raycaster} raycaster - The raycaster.
-	 * @param {Array} intersects - An array to be filled with the intersecting points.
+	 * @param {Array} octants - An array to be filled with the intersecting octants.
 	 */
 
-	raycast(raycaster, intersects) {
+	raycastOctants(raycaster, octants) {
 
-		const octants = [];
 		const root = this.root;
 
-		const size = root.size().clone();
-		const halfSize = size.clone().multiplyScalar(0.5);
+		const size = vectors[0].copy(root.size());
+		const halfSize = vectors[1].copy(size).multiplyScalar(0.5);
 
-		// Translate the extents to the origin.
-		const min = root.min.clone().sub(root.min);
-		const max = root.max.clone().sub(root.min);
+		// Translate the octree extents to the center of the octree.
+		const min = vectors[2].copy(root.min).sub(root.min);
+		const max = vectors[3].copy(root.max).sub(root.min);
 
-		const direction = raycaster.ray.direction.clone();
-		const origin = raycaster.ray.origin.clone();
+		const direction = vectors[4].copy(raycaster.ray.direction);
+		const origin = vectors[5].copy(raycaster.ray.origin);
 
-		// Translate the ray to the center of the tree.
+		// Translate the ray to the center of the octree.
 		origin.sub(root.center()).add(halfSize);
 
 		let invDirX, invDirY, invDirZ;
@@ -328,10 +377,48 @@ export class Octree extends THREE.Object3D {
 
 			root.raycast(tx0, ty0, tz0, tx1, ty1, tz1, raycaster, octants);
 
+		}
+
+	}
+
+	/**
+	 * Finds the points that intersect with the given ray.
+	 *
+	 * @method raycast
+	 * @param {Raycaster} raycaster - The raycaster.
+	 * @param {Array} containsPoint - An array to be filled with the intersecting points.
+	 */
+
+	raycast(raycaster, containsPoint) {
+
+		const octants = [];
+
+		this.raycastOctants(raycaster, octants);
+
+		if(octants.length > 0) {
+
 			// Collect intersecting points.
-			testPoints(raycaster, octants, intersects);
+			testPoints(octants, raycaster, containsPoint);
 
 		}
+
+	}
+
+	/**
+	 * Collects octants that lie inside the specified frustum.
+	 *
+	 * @method cull
+	 * @param {Frustum} frustum - A frustum.
+	 * @return {Array} The octants.
+	 */
+
+	cull(frustum) {
+
+		const result = [];
+
+		this.root.cull(frustum, result);
+
+		return result;
 
 	}
 

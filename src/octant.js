@@ -37,6 +37,7 @@ export class Octant {
 		 *
 		 * @property min
 		 * @type Vector3
+		 * @final
 		 */
 
 		this.min = (min !== undefined) ? min: new THREE.Vector3();
@@ -46,6 +47,7 @@ export class Octant {
 		 *
 		 * @property max
 		 * @type Vector3
+		 * @final
 		 */
 
 		this.max = (max !== undefined) ? max: new THREE.Vector3();
@@ -148,13 +150,13 @@ export class Octant {
 	/**
 	 * Checks if the given point lies inside this octant's boundaries.
 	 *
-	 * @method intersects
+	 * @method containsPoint
 	 * @param {Vector3} p - A point.
 	 * @param {Number} bias - A padding that extends the boundaries temporarily.
 	 * @return {Boolean} Whether the given point lies inside this octant.
 	 */
 
-	intersects(p, bias) {
+	containsPoint(p, bias) {
 
 		const min = this.min;
 		const max = this.max;
@@ -167,6 +169,38 @@ export class Octant {
 			p.y <= max.y + bias &&
 			p.z <= max.z + bias
 		);
+
+	}
+
+	/**
+	 * Collects leaf octants that lie inside the given frustum.
+	 *
+	 * @method cull
+	 * @param {Frustum} frustum - A frustum.
+	 * @param {Array} intersects - An array to be filled with the intersecting octants.
+	 */
+
+	cull(frustum, intersects) {
+
+		let i, l;
+
+		if(frustum.intersectsBox(this)) {
+
+			if(this.children !== null) {
+
+				for(i = 0, l = this.children.length; i < l; ++i) {
+
+					this.children[i].cull(frustum, intersects);
+
+				}
+
+			} else {
+
+				intersects.push(this);
+
+			}
+
+		}
 
 	}
 
@@ -187,6 +221,7 @@ export class Octant {
 
 		let i, l;
 		let points, point;
+		let halfSize;
 
 		if(this.children !== null) {
 
@@ -224,7 +259,10 @@ export class Octant {
 
 				unique = true;
 
-				if(this.totalPoints === Octant.maxPoints && this.level < Octant.maxDepth) {
+				halfSize = this.size().multiplyScalar(0.5);
+
+				if(this.totalPoints === Octant.maxPoints && this.level < Octant.maxDepth &&
+					halfSize.x >= Octant.minSize.x && halfSize.y >= Octant.minSize.y && halfSize.z >= Octant.minSize.z) {
 
 					// At maximum capacity and can still split.
 					this.split();
@@ -271,7 +309,7 @@ export class Octant {
 
 		for(i = 0, l = this.children.length; !hit && i < l; ++i) {
 
-			hit = this.children[i].intersects(p, Octant.bias);
+			hit = this.children[i].containsPoint(p, Octant.bias);
 
 			if(hit) {
 
@@ -300,6 +338,8 @@ export class Octant {
 	 */
 
 	split() {
+
+		const p = new THREE.Vector3();
 
 		const min = this.min;
 		const mid = this.center().clone();
@@ -336,20 +376,20 @@ export class Octant {
 
 		while(i >= 0) {
 
-			v.fromArray(this.points[i]);
+			p.fromArray(this.points[i]);
 
 			if(this.dataSets[i].size > 0) {
 
 				// Unfold data aggregations. Each entry is one point.
 				for(data of this.dataSets[i].values()) {
 
-					this.addToChild(v, data);
+					this.addToChild(p, data);
 
 				}
 
 			} else {
 
-				this.addToChild(v);
+				this.addToChild(p);
 
 			}
 
@@ -470,7 +510,7 @@ export class Octant {
 
 		for(i = 0, l = this.children.length; !hit && i < l; ++i) {
 
-			hit = this.children[i].intersects(p, Octant.bias);
+			hit = this.children[i].containsPoint(p, Octant.bias);
 
 			if(hit) {
 
@@ -537,6 +577,7 @@ export class Octant {
 		const children = this.children;
 
 		let i, l;
+		let halfSize;
 
 		if(children !== null) {
 
@@ -547,9 +588,12 @@ export class Octant {
 
 			}
 
-			if(this.totalPoints <= Octant.maxPoints || this.level >= Octant.maxDepth) {
+			halfSize = this.size().multiplyScalar(0.5);
 
-				// Points fit into one octant or the level is too high.
+			if(this.totalPoints <= Octant.maxPoints || this.level >= Octant.maxDepth ||
+				halfSize.x < Octant.minSize.x || halfSize.y < Octant.minSize.y || halfSize.z < Octant.minSize.z) {
+
+				// All points fit into one octant or the level is too high or the child octants are too small.
 				this.merge();
 
 			}
@@ -578,7 +622,7 @@ export class Octant {
 
 		let i, l;
 
-		if(this.intersects(p, Octant.bias)) {
+		if(this.containsPoint(p, Octant.bias)) {
 
 			if(this.children !== null) {
 
@@ -678,7 +722,7 @@ export class Octant {
 				// Unpack octant.
 				child = sortedChildren[i].octant;
 
-				if(child.totalPoints > 0 && child.intersects(p, bestDist)) {
+				if(child.totalPoints > 0 && child.containsPoint(p, bestDist)) {
 
 					childResult = child.findNearestPoint(p, bestDist, skipSelf);
 
@@ -750,7 +794,7 @@ export class Octant {
 
 				child = children[i];
 
-				if(child.totalPoints > 0 && child.intersects(p, r)) {
+				if(child.totalPoints > 0 && child.containsPoint(p, r)) {
 
 					child.findPoints(p, r, skipSelf, result);
 
@@ -828,17 +872,17 @@ export class Octant {
 	}
 
 	/**
-	 * Finds all points that intersect with the given ray.
+	 * Finds all octants that intersect with the given ray.
 	 *
 	 * @method raycast
-	 * @param {Number} tx0 - Ray projection parameter. tx0 = (minX - rayOriginX) / rayDirectionX.
-	 * @param {Number} ty0 - Ray projection parameter. ty0 = (minY - rayOriginY) / rayDirectionY.
-	 * @param {Number} tz0 - Ray projection parameter. tz0 = (minZ - rayOriginZ) / rayDirectionZ.
-	 * @param {Number} tx1 - Ray projection parameter. tx1 = (maxX - rayOriginX) / rayDirectionX.
-	 * @param {Number} ty1 - Ray projection parameter. ty1 = (maxY - rayOriginY) / rayDirectionY.
-	 * @param {Number} tz1 - Ray projection parameter. tz1 = (maxZ - rayOriginZ) / rayDirectionZ.
+	 * @param {Number} tx0 - Ray projection parameter. Initial tx0 = (minX - rayOriginX) / rayDirectionX.
+	 * @param {Number} ty0 - Ray projection parameter. Initial ty0 = (minY - rayOriginY) / rayDirectionY.
+	 * @param {Number} tz0 - Ray projection parameter. Initial tz0 = (minZ - rayOriginZ) / rayDirectionZ.
+	 * @param {Number} tx1 - Ray projection parameter. Initial tx1 = (maxX - rayOriginX) / rayDirectionX.
+	 * @param {Number} ty1 - Ray projection parameter. Initial ty1 = (maxY - rayOriginY) / rayDirectionY.
+	 * @param {Number} tz1 - Ray projection parameter. Initial tz1 = (maxZ - rayOriginZ) / rayDirectionZ.
 	 * @param {Raycaster} raycaster - The raycaster.
-	 * @param {Array} intersects - An array to be filled with the intersecting points.
+	 * @param {Array} intersects - An array to be filled with the intersecting octants.
 	 */
 
 	raycast(tx0, ty0, tz0, tx1, ty1, tz1, raycaster, intersects) {
@@ -973,3 +1017,14 @@ Octant.maxDepth = 8;
  */
 
 Octant.maxPoints = 8;
+
+/**
+ * The minimum size of an octant.
+ *
+ * @property minSize
+ * @type Vector3
+ * @static
+ * @default Vector3(1e-12, 1e-12, 1e-12)
+ */
+
+Octant.minSize = new THREE.Vector3(1e-12, 1e-12, 1e-12);
