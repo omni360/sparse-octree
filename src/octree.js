@@ -1,43 +1,22 @@
 import { Octant } from "./octant";
-import { flags, testPoints } from "./raycasting";
+import { Raycasting } from "./raycasting";
 import { Vector3 } from "./vector3";
 
 /**
- * A collection of vectors. Used for computations.
- *
- * @property vectors
- * @type Array
- * @private
- * @static
- * @final
- */
-
-const vectors = [
-	new Vector3(),
-	new Vector3(),
-	new Vector3(),
-	new Vector3(),
-	new Vector3(),
-	new Vector3()
-];
-
-/**
- * An octree that subdivides 3D space into regular cells for 
- * fast spatial searches.
+ * An octree that subdivides space into regular cells for fast spatial searches.
  *
  * @class Octree
  * @constructor
  * @param {Vector3} min - The lower bounds of the tree.
  * @param {Vector3} max - The upper bounds of the tree.
  * @param {Number} [bias=0.0] - A threshold for proximity checks.
- * @param {Number} [maxPoints=8] - Number of distinct points per octant before it's split up.
+ * @param {Number} [maxPoints=8] - Number of distinct points per octant before it splits up.
  * @param {Number} [maxDepth=8] - The maximum tree depth level, starting at 0.
- * @param {Vector3} [minSize] - The minimum octant size.
  */
 
 export class Octree {
 
-	constructor(min, max, bias, maxPoints, maxDepth, minSize) {
+	constructor(min, max, bias, maxPoints, maxDepth) {
 
 		/**
 		 * The root node.
@@ -54,7 +33,6 @@ export class Octree {
 		this.bias = bias;
 		this.maxDepth = maxDepth;
 		this.maxPoints = maxPoints;
-		this.minSize = minSize;
 
 	}
 
@@ -93,8 +71,8 @@ export class Octree {
 	 * Setting this value refreshes the entire tree.
 	 *
 	 * It's possible to set this value to Infinity, but be aware that allowing 
-	 * infinitely small octants can have a negative impact on performance. 
-	 * Finding a value that works best for a specific scene is advisable.
+	 * infinitely small octants can have a negative impact on performance. Finding 
+	 * a value that works best for a specific scene is advisable.
 	 *
 	 * @property maxDepth
 	 * @type Number
@@ -115,12 +93,12 @@ export class Octree {
 	}
 
 	/**
-	 * Number of points per octant before a split occurs.
-	 * Setting this value refreshes the entire tree.
+	 * Number of points per octant before a split occurs. Setting this value 
+	 * refreshes the entire tree.
 	 *
-	 * This value works together with the maximum depth as a secondary 
-	 * limiting factor. Smaller values cause splits to occur earlier 
-	 * which results in a faster and deeper tree growth.
+	 * This value works together with the maximum depth as a secondary limiting 
+	 * factor. Smaller values cause splits to occur earlier which results in a 
+	 * faster and deeper tree growth.
 	 *
 	 * @property maxPoints
 	 * @type Number
@@ -141,33 +119,6 @@ export class Octree {
 	}
 
 	/**
-	 * The minimum size of an octant.
-	 *
-	 * Octants won't split if their children would have a side 
-	 * that's smaller than the respective x, y or z minimum value.
-	 *
-	 * This value acts just like the maximum depth as a primary 
-	 * limiting factor.
-	 *
-	 * @property minSize
-	 * @type Vector3
-	 * @default Vector3(1e-12, 1e-12, 1e-12)
-	 */
-
-	get minSize() { return Octant.minSize; }
-
-	set minSize(x) {
-
-		if(x instanceof Vector3) {
-
-			Octant.minSize.copy(x).max(vectors[0].set(1e-12, 1e-12, 1e-12));
-			this.root.update();
-
-		}
-
-	}
-
-	/**
 	 * Adds a point to the tree.
 	 *
 	 * @method add
@@ -179,15 +130,14 @@ export class Octree {
 
 		if(this.root.containsPoint(p, this.bias)) {
 
-			this.root.add(p, data);
+			this.root.add(p.clone(), data);
 
 		}
 
 	}
 
 	/**
-	 * Adds all points that are described by a given array of position 
-	 * values to the tree.
+	 * Adds all points from the given array of position triples to the tree.
 	 *
 	 * @method addPoints
 	 * @param {Float32Array} array - An array containing point position triples.
@@ -196,13 +146,13 @@ export class Octree {
 
 	addPoints(array, data) {
 
-		const v = vectors[0];
+		const v = new Vector3();
 
 		let i, l;
 
 		for(i = 0, l = array.length; i < l; i += 3) {
 
-			this.add(v.fromArray(array, i), data);
+			this.add(v.fromArray(array, i).clone(), data);
 
 		}
 
@@ -227,8 +177,8 @@ export class Octree {
 	}
 
 	/**
-	 * Removes all points that are described by a given array of position 
-	 * values from the tree.
+	 * Removes all points from the tree that are in the given array of position 
+	 * triples.
 	 *
 	 * @method removePoints
 	 * @param {Float32Array} array - An array containing point position triples.
@@ -237,7 +187,7 @@ export class Octree {
 
 	removePoints(array, data) {
 
-		const v = vectors[0];
+		const v = new Vector3();
 
 		let i, l;
 
@@ -305,84 +255,6 @@ export class Octree {
 	}
 
 	/**
-	 * Finds the octants that intersect with the given ray.
-	 *
-	 * @method raycastOctants
-	 * @param {Raycaster} raycaster - The raycaster.
-	 * @param {Array} octants - An array to be filled with the intersecting octants.
-	 */
-
-	raycastOctants(raycaster, octants) {
-
-		const root = this.root;
-
-		const size = vectors[0].copy(root.size());
-		const halfSize = vectors[1].copy(size).multiplyScalar(0.5);
-
-		// Translate the octree extents to the center of the octree.
-		const min = vectors[2].copy(root.min).sub(root.min);
-		const max = vectors[3].copy(root.max).sub(root.min);
-
-		const direction = vectors[4].copy(raycaster.ray.direction);
-		const origin = vectors[5].copy(raycaster.ray.origin);
-
-		// Translate the ray to the center of the octree.
-		origin.sub(root.center()).add(halfSize);
-
-		let invDirX, invDirY, invDirZ;
-		let tx0, tx1, ty0, ty1, tz0, tz1;
-
-		// Reset the last byte.
-		flags[8] = flags[0];
-
-		// Handle rays with negative directions.
-		if(direction.x < 0.0) {
-
-			origin.x = size.x - origin.x;
-			direction.x = -direction.x;
-			flags[8] |= flags[4];
-
-		}
-
-		if(direction.y < 0.0) {
-
-			origin.y = size.y - origin.y;
-			direction.y = -direction.y;
-			flags[8] |= flags[2];
-
-		}
-
-		if(direction.z < 0.0) {
-
-			origin.z = size.z - origin.z;
-			direction.z = -direction.z;
-			flags[8] |= flags[1];
-
-		}
-
-		// Improve IEEE double stability.
-		invDirX = 1.0 / direction.x;
-		invDirY = 1.0 / direction.y;
-		invDirZ = 1.0 / direction.z;
-
-		// Project the ray to the root's boundaries.
-		tx0 = (min.x - origin.x) * invDirX;
-		tx1 = (max.x - origin.x) * invDirX;
-		ty0 = (min.y - origin.y) * invDirY;
-		ty1 = (max.y - origin.y) * invDirY;
-		tz0 = (min.z - origin.z) * invDirZ;
-		tz1 = (max.z - origin.z) * invDirZ;
-
-		// Check if the ray hits the octree.
-		if(Math.max(Math.max(tx0, ty0), tz0) < Math.min(Math.min(tx1, ty1), tz1)) {
-
-			root.raycast(tx0, ty0, tz0, tx1, ty1, tz1, raycaster, octants);
-
-		}
-
-	}
-
-	/**
 	 * Finds the points that intersect with the given ray.
 	 *
 	 * @method raycast
@@ -394,12 +266,12 @@ export class Octree {
 
 		const octants = [];
 
-		this.raycastOctants(raycaster, octants);
+		Raycasting.raycast(this, raycaster, octants);
 
 		if(octants.length > 0) {
 
 			// Collect intersecting points.
-			testPoints(octants, raycaster, intersects);
+			Raycasting.testPoints(octants, raycaster, intersects);
 
 		}
 

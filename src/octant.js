@@ -1,17 +1,4 @@
-import { flags, getFirstOctant, getNextOctant } from "./raycasting";
 import { Vector3 } from "./vector3";
-
-/**
- * A computation helper.
- *
- * @property v
- * @type Vector3
- * @private
- * @static
- * @final
- */
-
-const v = new Vector3();
 
 /**
  * An octant.
@@ -35,7 +22,7 @@ export class Octant {
 		 * @final
 		 */
 
-		this.min = (min !== undefined) ? min: new Vector3();
+		this.min = (min !== undefined) ? min : new Vector3();
 
 		/**
 		 * The upper bounds of the octant.
@@ -45,7 +32,7 @@ export class Octant {
 		 * @final
 		 */
 
-		this.max = (max !== undefined) ? max: new Vector3();
+		this.max = (max !== undefined) ? max : new Vector3();
 
 		/**
 		 * The depth level of this octant.
@@ -55,7 +42,7 @@ export class Octant {
 		 * @final
 		 */
 
-		this.level = (level !== undefined) ? level: 0;
+		this.level = (level !== undefined) ? level : 0;
 
 		/**
 		 * The amount of points in this octant.
@@ -104,7 +91,7 @@ export class Octant {
 
 	center() {
 
-		return v.addVectors(this.min, this.max).multiplyScalar(0.5);
+		return this.min.clone().add(this.max).multiplyScalar(0.5);
 
 	}
 
@@ -117,7 +104,7 @@ export class Octant {
 
 	size() {
 
-		return v.subVectors(this.max, this.min);
+		return this.max.clone().sub(this.min);
 
 	}
 
@@ -131,15 +118,15 @@ export class Octant {
 
 	distanceToSquared(p) {
 
-		const clampedPoint = v.copy(p).clamp(this.min, this.max);
+		const clampedPoint = p.clone().clamp(this.min, this.max);
 
 		return clampedPoint.sub(p).lengthSq();
 
 	}
 
 	/**
-	 * Computes the distance squared from the center of this octant to 
-	 * the given point.
+	 * Computes the distance squared from the center of this octant to the given 
+	 * point.
 	 *
 	 * @method distanceToCenterSquared
 	 * @param {Vector3} p - A point.
@@ -148,7 +135,7 @@ export class Octant {
 
 	distanceToCenterSquared(p) {
 
-		const center = this.center(); // @todo: cache this.
+		const center = this.center();
 
 		const dx = p.x - center.x;
 		const dy = p.y - center.x;
@@ -161,8 +148,8 @@ export class Octant {
 	/**
 	 * Checks if the given point lies inside this octant's boundaries.
 	 *
-	 * This method can also be used to check if this octant intersects 
-	 * a sphere by providing a radius as bias.
+	 * This method can also be used to check if this octant intersects a sphere by 
+	 * providing a radius as bias.
 	 *
 	 * @method containsPoint
 	 * @param {Vector3} p - A point.
@@ -219,8 +206,8 @@ export class Octant {
 	}
 
 	/**
-	 * Adds a given point to this node. If this octant isn't a leaf node, 
-	 * the point will be added to a child octant.
+	 * Adds a given point to this node. If this octant isn't a leaf node, the 
+	 * point will be added to a child octant.
 	 *
 	 * @method add
 	 * @param {Vector3} p - A point.
@@ -235,7 +222,6 @@ export class Octant {
 
 		let i, l;
 		let points, point;
-		let halfSize;
 
 		if(this.children !== null) {
 
@@ -256,7 +242,7 @@ export class Octant {
 			for(i = 0, l = this.totalPoints; !hit && i < l; ++i) {
 
 				point = points[i];
-				hit = (point[0] === p.x && point[1] === p.y && point[2] === p.z);
+				hit = point.equals(p);
 
 			}
 
@@ -273,10 +259,7 @@ export class Octant {
 
 				unique = true;
 
-				halfSize = this.size().multiplyScalar(0.5);
-
-				if(this.totalPoints === Octant.maxPoints && this.level < Octant.maxDepth &&
-					halfSize.x >= Octant.minSize.x && halfSize.y >= Octant.minSize.y && halfSize.z >= Octant.minSize.z) {
+				if(this.totalPoints === Octant.maxPoints && this.level < Octant.maxDepth) {
 
 					// At maximum capacity and can still split.
 					this.split();
@@ -285,7 +268,7 @@ export class Octant {
 				} else {
 
 					// Count distinct points in leaf nodes.
-					this.totalPoints = this.points.push(p.toArray());
+					this.totalPoints = this.points.push(p);
 					this.dataSets.push(new Set());
 
 					if(data !== undefined) {
@@ -353,16 +336,14 @@ export class Octant {
 
 	split() {
 
-		const p = new Vector3();
-
 		const min = this.min;
-		const mid = this.center().clone();
+		const mid = this.center();
 		const max = this.max;
 
 		const nextLevel = this.level + 1;
 
 		let i, l;
-		let index, data;
+		let point, data;
 
 		/* The order is important for raycasting.
 		 *
@@ -390,20 +371,20 @@ export class Octant {
 
 		while(i >= 0) {
 
-			p.fromArray(this.points[i]);
+			point = this.points[i];
 
 			if(this.dataSets[i].size > 0) {
 
 				// Unfold data aggregations. Each entry is one point.
 				for(data of this.dataSets[i].values()) {
 
-					this.addToChild(p, data);
+					this.addToChild(point, data);
 
 				}
 
 			} else {
 
-				this.addToChild(p);
+				this.addToChild(point);
 
 			}
 
@@ -417,9 +398,9 @@ export class Octant {
 	}
 
 	/**
-	 * Removes the given point from this octant. If this octant is not a leaf node, 
-	 * the point will be removed from a child node. If no data is provided, the point 
-	 * and all its respective data entries will be removed completely.
+	 * Removes the given point from this octant. If this octant is not a leaf 
+	 * node, the point will be removed from a child node. If no data is provided, 
+	 * the point and all its respective data entries will be removed completely.
 	 *
 	 * @method remove
 	 * @param {Vector3} p - The point.
@@ -455,7 +436,7 @@ export class Octant {
 
 				point = points[i];
 
-				if(point[0] === p.x && point[1] === p.y && point[2] === p.z) {
+				if(point.equals(p)) {
 
 					// Found it.
 					dataSet = dataSets[i];
@@ -546,8 +527,8 @@ export class Octant {
 	}
 
 	/**
-	 * Gathers all points from the children. The children are 
-	 * expected to be leaf nodes and will be dropped afterwards.
+	 * Gathers all points from the children. The children are expected to be leaf 
+	 * nodes and will be dropped afterwards.
 	 *
 	 * @method merge
 	 * @private
@@ -580,8 +561,8 @@ export class Octant {
 	}
 
 	/**
-	 * Refreshes this octant and its children to make sure that all 
-	 * constraints are satisfied.
+	 * Refreshes this octant and its children to make sure that all constraints 
+	 * are satisfied.
 	 *
 	 * @method update
 	 */
@@ -591,7 +572,6 @@ export class Octant {
 		const children = this.children;
 
 		let i, l;
-		let halfSize;
 
 		if(children !== null) {
 
@@ -602,12 +582,9 @@ export class Octant {
 
 			}
 
-			halfSize = this.size().multiplyScalar(0.5);
+			if(this.totalPoints <= Octant.maxPoints || this.level >= Octant.maxDepth) {
 
-			if(this.totalPoints <= Octant.maxPoints || this.level >= Octant.maxDepth ||
-				halfSize.x < Octant.minSize.x || halfSize.y < Octant.minSize.y || halfSize.z < Octant.minSize.z) {
-
-				// All points fit into one octant or the level is too high or the child octants are too small.
+				// All points fit into one octant or the level is too high.
 				this.merge();
 
 			}
@@ -635,6 +612,7 @@ export class Octant {
 		let hit = false;
 
 		let i, l;
+		let point;
 
 		if(this.containsPoint(p, Octant.bias)) {
 
@@ -650,7 +628,8 @@ export class Octant {
 
 				for(i = 0, l = this.totalPoints; !hit && i < l; ++i) {
 
-					hit = (p.distanceToSquared(v.fromArray(this.points[i])) <= Octant.biasSquared);
+					point = this.points[i];
+					hit = (p.distanceToSquared(point) <= Octant.biasSquared);
 
 					if(hit) {
 
@@ -669,7 +648,7 @@ export class Octant {
 	}
 
 	/**
-	 * Finds the closest point to the given one, excluding itself.
+	 * Finds the closest point to the given one.
 	 *
 	 * @method findNearestPoint
 	 * @param {Vector3} p - The point.
@@ -687,7 +666,7 @@ export class Octant {
 		let bestDist = maxDistance;
 
 		let i, l;
-		let distSq;
+		let point, distSq;
 
 		let sortedChildren;
 		let child, childResult;
@@ -697,14 +676,15 @@ export class Octant {
 
 			for(i = 0, l = this.totalPoints; i < l; ++i) {
 
-				distSq = p.distanceToSquared(v.fromArray(points[i]));
+				point = points[i];
+				distSq = p.distanceToSquared(point);
 
 				if((!skipSelf || distSq > 0.0) && distSq <= bestDist) {
 
 					bestDist = distSq;
 
 					result = {
-						point: v.clone(),
+						point: point.clone(),
 						data: this.dataSets[i]
 					};
 
@@ -780,7 +760,8 @@ export class Octant {
 		const rSq = r * r;
 
 		let i, l;
-		let distSq;
+
+		let point, distSq;
 		let child;
 
 		// Only consider leaf nodes.
@@ -788,12 +769,13 @@ export class Octant {
 
 			for(i = 0, l = this.totalPoints; i < l; ++i) {
 
-				distSq = p.distanceToSquared(v.fromArray(points[i]));
+				point = points[i];
+				distSq = p.distanceToSquared(point);
 
 				if((!skipSelf || distSq > 0.0) && distSq <= rSq) {
 
 					result.push({
-						point: v.clone(),
+						point: point.clone(),
 						data: this.dataSets[i]
 					});
 
@@ -885,107 +867,6 @@ export class Octant {
 
 	}
 
-	/**
-	 * Finds all octants that intersect with the given ray.
-	 *
-	 * @method raycast
-	 * @param {Number} tx0 - Ray projection parameter. Initial tx0 = (minX - rayOriginX) / rayDirectionX.
-	 * @param {Number} ty0 - Ray projection parameter. Initial ty0 = (minY - rayOriginY) / rayDirectionY.
-	 * @param {Number} tz0 - Ray projection parameter. Initial tz0 = (minZ - rayOriginZ) / rayDirectionZ.
-	 * @param {Number} tx1 - Ray projection parameter. Initial tx1 = (maxX - rayOriginX) / rayDirectionX.
-	 * @param {Number} ty1 - Ray projection parameter. Initial ty1 = (maxY - rayOriginY) / rayDirectionY.
-	 * @param {Number} tz1 - Ray projection parameter. Initial tz1 = (maxZ - rayOriginZ) / rayDirectionZ.
-	 * @param {Raycaster} raycaster - The raycaster.
-	 * @param {Array} intersects - An array to be filled with the intersecting octants.
-	 */
-
-	raycast(tx0, ty0, tz0, tx1, ty1, tz1, raycaster, intersects) {
-
-		const children = this.children;
-
-		let currentOctant;
-		let txm, tym, tzm;
-
-		if(tx1 >= 0.0 && ty1 >= 0.0 && tz1 >= 0.0) {
-
-			if(children === null) {
-
-				// Leaf.
-				if(this.totalPoints > 0) {
-
-					intersects.push(this);
-
-				}
-
-			} else {
-
-				// Compute means.
-				txm = 0.5 * (tx0 + tx1);
-				tym = 0.5 * (ty0 + ty1);
-				tzm = 0.5 * (tz0 + tz1);
-
-				currentOctant = getFirstOctant(tx0, ty0, tz0, txm, tym, tzm);
-
-				do {
-
-					/* The possibilities for the next node are passed in the same respective order as the t-values.
-					 * Hence, if the first parameter is found as the greatest, the fourth one will be returned.
-					 * If the 2nd parameter is the greatest, the 5th will be returned, etc.
-					 */
-
-					switch(currentOctant) {
-
-						case 0:
-							children[flags[8]].raycast(tx0, ty0, tz0, txm, tym, tzm, raycaster, intersects);
-							currentOctant = getNextOctant(currentOctant, txm, tym, tzm);
-							break;
-
-						case 1:
-							children[flags[8] ^ flags[1]].raycast(tx0, ty0, tzm, txm, tym, tz1, raycaster, intersects);
-							currentOctant = getNextOctant(currentOctant, txm, tym, tz1);
-							break;
-
-						case 2:
-							children[flags[8] ^ flags[2]].raycast(tx0, tym, tz0, txm, ty1, tzm, raycaster, intersects);
-							currentOctant = getNextOctant(currentOctant, txm, ty1, tzm);
-							break;
-
-						case 3:
-							children[flags[8] ^ flags[3]].raycast(tx0, tym, tzm, txm, ty1, tz1, raycaster, intersects);
-							currentOctant = getNextOctant(currentOctant, txm, ty1, tz1);
-							break;
-
-						case 4:
-							children[flags[8] ^ flags[4]].raycast(txm, ty0, tz0, tx1, tym, tzm, raycaster, intersects);
-							currentOctant = getNextOctant(currentOctant, tx1, tym, tzm);
-							break;
-
-						case 5:
-							children[flags[8] ^ flags[5]].raycast(txm, ty0, tzm, tx1, tym, tz1, raycaster, intersects);
-							currentOctant = getNextOctant(currentOctant, tx1, tym, tz1);
-							break;
-
-						case 6:
-							children[flags[8] ^ flags[6]].raycast(txm, tym, tz0, tx1, ty1, tzm, raycaster, intersects);
-							currentOctant = getNextOctant(currentOctant, tx1, ty1, tzm);
-							break;
-
-						case 7:
-							children[flags[8] ^ flags[7]].raycast(txm, tym, tzm, tx1, ty1, tz1, raycaster, intersects);
-							// Far top right octant. No other octants can be reached from here.
-							currentOctant = 8;
-							break;
-
-					}
-
-				} while(currentOctant < 8);
-
-			}
-
-		}
-
-	}
-
 }
 
 /**
@@ -1031,14 +912,3 @@ Octant.maxDepth = 8;
  */
 
 Octant.maxPoints = 8;
-
-/**
- * The minimum size of an octant.
- *
- * @property minSize
- * @type Vector3
- * @static
- * @default Vector3(1e-12, 1e-12, 1e-12)
- */
-
-Octant.minSize = new Vector3(1e-12, 1e-12, 1e-12);
