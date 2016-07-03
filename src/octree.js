@@ -119,6 +119,15 @@ export class Octree {
 	}
 
 	/**
+	 * The amount of points that are currently in the tree.
+	 *
+	 * @property totalPoints
+	 * @type Number
+	 */
+
+	get totalPoints() { return this.root.totalPoints; }
+
+	/**
 	 * Adds a point to the tree.
 	 *
 	 * @method add
@@ -278,18 +287,18 @@ export class Octree {
 	}
 
 	/**
-	 * Collects octants that lie inside the specified frustum.
+	 * Collects octants that lie inside the specified frustum or bounding box.
 	 *
 	 * @method cull
-	 * @param {Frustum} frustum - A frustum.
+	 * @param {Frustum|Box3} shape - A frustum or a bounding box.
 	 * @return {Array} The octants.
 	 */
 
-	cull(frustum) {
+	cull(shape) {
 
 		const result = [];
 
-		this.root.cull(frustum, result);
+		this.root.cull(shape, result);
 
 		return result;
 
@@ -298,45 +307,28 @@ export class Octree {
 	/**
 	 * Fetches all nodes with the specified level.
 	 *
-	 * @method getOctantsByLevel
+	 * @method findOctantsByLevel
 	 * @param {Number} level - The depth level.
 	 * @return {Array} The nodes.
 	 */
 
-	getOctantsByLevel(level) {
+	findOctantsByLevel(level) {
 
 		const result = [];
 
-		this.root.getOctantsByLevel(level, result);
+		this.root.findOctantsByLevel(level, result);
 
 		return result;
 
 	}
 
 	/**
-	 * Returns the amount of points that are currently in the tree.
+	 * Calculates the current tree depth recursively.
 	 *
-	 * @method getTotalPoints
-	 * @return {Number} The total amount of points in the tree.
-	 */
-
-	getTotalPoints() {
-
-		return this.root.totalPoints;
-
-	}
-
-	/**
-	 * Calculates the current tree depth.
-	 *
-	 * @method getDepth
+	 * @method depth
 	 * @return {Number} The depth.
 	 */
 
-	getDepth() {
-
-		return this.root.getDepth();
-
-	}
+	depth() { return this.root.depth(); }
 
 }
