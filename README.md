@@ -4,21 +4,7 @@
 [![Dependencies](https://david-dm.org/vanruesc/sparse-octree.svg?branch=master)](https://david-dm.org/vanruesc/sparse-octree)
 
 A sparse octree data structure for three.js. Sparse octrees can have empty nodes. 
-Nodes that aren't empty can either have children themselves or they can be leaf nodes that contain point data. 
-
-This octree doesn't support moving objects and its focus lies on managing point data. Support for triangles and 
-dynamic updates is planned, but has low priority. 
-
-## Preface
-
-This module uses modern ECMAScript features and requires one of the following browsers:
- - Chrome ≥ 42
- - Firefox ≥ 45
- - IE Edge ≥ 13
-
-[Semantic versioning](http://semver.org/) is used in this module to indicate whether an update 
-introduces breaking changes. However, backwards-compatibility regarding ECMAScript versions is 
-entirely neglected in favor of cleaner code and development convenience.
+Nodes that aren't empty can either have children themselves or they can be leaf nodes that contain data. 
 
 
 ## Installation
@@ -54,7 +40,7 @@ const points = new Points(
 
 scene.add(points);
 
-const bbox = new THREE.Box3();
+const bbox = new Box3();
 bbox.setFromObject(scene);
 
 const octree = new Octree(bbox.min, bbox.max, 0.0, 8, 8);
@@ -70,6 +56,7 @@ scene.add(new OctreeHelper(octree));
 }());
 ```
 
+The full setup can be found [here](https://jsfiddle.net/py89hgn3/).
 
 ## Demo
 [Octree Raycasting](http://vanruesc.github.io/sparse-octree/public/index.html)

@@ -8,28 +8,23 @@ module.exports = function(grunt) {
 		banner: "/**\n" +
 			" * <%= pkg.name %> v<%= pkg.version %> build <%= date %>\n" +
 			" * <%= pkg.homepage %>\n" +
-			" * Copyright <%= date.slice(-4) %> <%= pkg.author.name %>, <%= pkg.license %>\n" + 
+			" * Copyright <%= date.slice(-4) %> <%= pkg.author.name %>, <%= pkg.license %>\n" +
 			" */\n",
 
-		jshint: {
-			options: {
-				jshintrc: true
-			},
-			files: ["Gruntfile.js", "src/**/*.js", "test/**/*.js"]
+		eslint: {
+			target: ["Gruntfile.js", "src/**/*.js", "test/**/*.js"]
 		},
 
 		rollup: {
 			options: {
-				globals: {three: "THREE"},
+				globals: { three: "THREE" },
 				external: ["three"],
 				plugins: [
 					require("rollup-plugin-node-resolve")({
 						jsnext: true
 					}),
 					require("rollup-plugin-babel")({
-						exclude: [
-							"node_modules/**"
-						]
+						exclude: "node_modules/**"
 					})
 				]
 			},
@@ -68,6 +63,12 @@ module.exports = function(grunt) {
 				src: ["build/<%= pkg.name %>.js"],
 				dest: "public/<%= pkg.name %>.js",
 				filter: "isFile"
+			},
+			min: {
+				expand: false,
+				src: ["build/<%= pkg.name %>.min.js"],
+				dest: "public/<%= pkg.name %>.min.js",
+				filter: "isFile"
 			}
 		},
 
@@ -87,14 +88,15 @@ module.exports = function(grunt) {
 	});
 
 	grunt.loadNpmTasks("grunt-contrib-nodeunit");
-	grunt.loadNpmTasks("grunt-contrib-jshint");
 	grunt.loadNpmTasks("grunt-contrib-uglify");
 	grunt.loadNpmTasks("grunt-contrib-yuidoc");
 	grunt.loadNpmTasks("grunt-contrib-copy");
+	grunt.loadNpmTasks("grunt-eslint");
 	grunt.loadNpmTasks("grunt-rollup");
 
-	grunt.registerTask("default", ["build", "nodeunit"]);
-	grunt.registerTask("build", ["jshint", "rollup", "copy"]);
-	grunt.registerTask("test", ["jshint", "nodeunit"]);
+	grunt.registerTask("default", ["build", "nodeunit", "minify"]);
+	grunt.registerTask("build", ["eslint", "rollup", "copy:bundle"]);
+	grunt.registerTask("test", ["eslint", "nodeunit"]);
+	grunt.registerTask("minify", ["uglify", "copy:min"]);
 
 };

@@ -5,7 +5,9 @@
  * @main octree
  */
 
-export { Octree } from "./octree";
 export { Octant } from "./octant";
+export { Octree } from "./octree";
 export { OctreeHelper } from "./helper";
-export { Raycasting } from "./raycasting";
+
+export { PointOctant } from "./point";
+export { PointOctree } from "./point";
