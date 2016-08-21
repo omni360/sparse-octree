@@ -17,49 +17,23 @@ $ npm install sparse-octree
 ## Usage
 
 ```javascript
-// Attention: Three is not yet an ES2015 module!
-import {
-  WebGLRenderer, Scene, PerspectiveCamera,
-  Points, PointsMaterial, BoxBufferGeometry, Box3
-} from "three";
+// Attention: Three is not yet an ES6 module!
+import { Vector3 } from "three";
+import { PointOctree } from "sparse-octree";
 
-import { Octree, OctreeHelper } from "sparse-octree";
+const min = new Vector3(-1, -1, -1);
+const max = new Vector3(1, 1, 1);
 
-const renderer = new WebGLRenderer();
-const scene = new Scene();
-
-const camera = new PerspectiveCamera();
-scene.add(camera);
-
-const points = new Points(
-  new TorusKnotBufferGeometry(1, 1, 64, 64),
-  new PointsMaterial({
-    color: 0xffffff, size: 1, sizeAttenuation: false
-  })
-);
-
-scene.add(points);
-
-const bbox = new Box3();
-bbox.setFromObject(scene);
-
-const octree = new Octree(bbox.min, bbox.max, 0.0, 8, 8);
-octree.addPoints(points.geometry.getAttribute("position").array, points);
-
-scene.add(new OctreeHelper(octree));
-
-(function render(now) {
-
-  requestAnimationFrame(render);
-  renderer.render(scene, camera);
-
-}());
+const octree = new PointOctree(min, max);
+octree.add(new Vector3(0, 0, 0), {});
+octree.fetch(new Vector3(0, 0, 0)); // {}
 ```
 
-The full setup can be found [here](https://jsfiddle.net/py89hgn3/).
+A full scene setup can be found [here](https://jsfiddle.net/py89hgn3/2/).
 
-## Demo
-[Octree Raycasting](http://vanruesc.github.io/sparse-octree/public/index.html)
+
+## Extensive Demo
+[Octree Features](http://vanruesc.github.io/sparse-octree/public/index.html)
 
 
 ## Documentation
