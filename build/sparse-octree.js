@@ -1,5 +1,5 @@
 /**
- * sparse-octree v2.2.0 build Aug 31 2016
+ * sparse-octree v2.3.0 build Sep 17 2016
  * https://github.com/vanruesc/sparse-octree
  * Copyright 2016 Raoul van Rüschen, Zlib
  */
@@ -36,7 +36,13 @@
     };
   }();
 
-  var get = function get(object, property, receiver) {
+
+
+
+
+
+
+  var get$1 = function get$1(object, property, receiver) {
     if (object === null) object = Function.prototype;
     var desc = Object.getOwnPropertyDescriptor(object, property);
 
@@ -46,7 +52,7 @@
       if (parent === null) {
         return undefined;
       } else {
-        return get(parent, property, receiver);
+        return get$1(parent, property, receiver);
       }
     } else if ("value" in desc) {
       return desc.value;
@@ -77,6 +83,16 @@
     if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
   };
 
+
+
+
+
+
+
+
+
+
+
   var possibleConstructorReturn = function (self, call) {
     if (!self) {
       throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
@@ -84,6 +100,44 @@
 
     return call && (typeof call === "object" || typeof call === "function") ? call : self;
   };
+
+
+
+  var set$1 = function set$1(object, property, value, receiver) {
+    var desc = Object.getOwnPropertyDescriptor(object, property);
+
+    if (desc === undefined) {
+      var parent = Object.getPrototypeOf(object);
+
+      if (parent !== null) {
+        set$1(parent, property, value, receiver);
+      }
+    } else if ("value" in desc && desc.writable) {
+      desc.value = value;
+    } else {
+      var setter = desc.set;
+
+      if (setter !== undefined) {
+        setter.call(receiver, value);
+      }
+    }
+
+    return value;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   var toConsumableArray = function (arr) {
     if (Array.isArray(arr)) {
@@ -744,26 +798,26 @@
   	/**
     * Computes the center of this octant.
     *
-    * @method center
+    * @method getCenter
     * @return {Vector3} A new vector that describes the center of this octant.
     */
 
   	createClass(Octant, [{
-  		key: "center",
-  		value: function center() {
+  		key: "getCenter",
+  		value: function getCenter() {
   			return this.min.clone().add(this.max).multiplyScalar(0.5);
   		}
 
   		/**
      * Computes the size of this octant.
      *
-     * @method dimensions
+     * @method getDimensions
      * @return {Vector3} A new vector that describes the size of this octant.
      */
 
   	}, {
-  		key: "dimensions",
-  		value: function dimensions() {
+  		key: "getDimensions",
+  		value: function getDimensions() {
   			return this.max.clone().sub(this.min);
   		}
 
@@ -780,7 +834,7 @@
 
   			var min = this.min;
   			var max = this.max;
-  			var mid = this.center();
+  			var mid = this.getCenter();
 
   			var i = void 0,
   			    j = void 0;
@@ -794,7 +848,7 @@
 
   			if (Array.isArray(octants)) {
 
-  				halfDimensions = this.dimensions().multiplyScalar(0.5);
+  				halfDimensions = this.getDimensions().multiplyScalar(0.5);
   				v = [new Vector3(), new Vector3(), new Vector3()];
   				l = octants.length;
   			}
@@ -836,10 +890,12 @@
   /**
    * A binary pattern that describes the standard octant layout:
    *
+   * <pre>
    *    3____7
    *  2/___6/|
    *  | 1__|_5
    *  0/___4/
+   * </pre>
    *
    * This common layout is crucial for positional assumptions.
    *
@@ -903,30 +959,30 @@
      */
 
   		createClass(CubicOctant, [{
-  				key: "center",
+  				key: "getCenter",
 
 
   				/**
        * Computes the center of this octant.
        *
-       * @method center
+       * @method getCenter
        * @return {Vector3} A new vector that describes the center of this octant.
        */
 
-  				value: function center() {
+  				value: function getCenter() {
   						return this.min.clone().addScalar(this.size * 0.5);
   				}
 
   				/**
        * Returns the size of this octant as a vector.
        *
-       * @method dimensions
+       * @method getDimensions
        * @return {Vector3} A new vector that describes the size of this octant.
        */
 
   		}, {
-  				key: "dimensions",
-  				value: function dimensions() {
+  				key: "getDimensions",
+  				value: function getDimensions() {
   						return new Vector3(this.size, this.size, this.size);
   				}
 
@@ -942,7 +998,7 @@
   				value: function split(octants) {
 
   						var min = this.min;
-  						var mid = this.center();
+  						var mid = this.getCenter();
   						var halfSize = this.size * 0.5;
 
   						var i = void 0,
@@ -1249,7 +1305,7 @@
 
   		value: function raycast(octree, raycaster, octants) {
 
-  			var dimensions = octree.dimensions();
+  			var dimensions = octree.getDimensions();
   			var halfDimensions = dimensions.clone().multiplyScalar(0.5);
 
   			// Translate the octree extents to the center of the octree.
@@ -1260,7 +1316,7 @@
   			var origin = raycaster.ray.origin.clone();
 
   			// Translate the ray to the center of the octree.
-  			origin.sub(octree.center()).add(halfDimensions);
+  			origin.sub(octree.getCenter()).add(halfDimensions);
 
   			var invDirX = void 0,
   			    invDirY = void 0,
@@ -1354,31 +1410,31 @@
     */
 
   	createClass(Octree, [{
-  		key: "dimensions",
+  		key: "getCenter",
 
-
-  		/**
-     * Calculates the size of this octree.
-     *
-     * @method dimensions
-     * @return {Vector3} A new vector that describes the size of this octree.
-     */
-
-  		value: function dimensions() {
-  			return this.root.dimensions();
-  		}
 
   		/**
      * Calculates the center of this octree.
      *
-     * @method center
+     * @method getCenter
      * @return {Vector3} A new vector that describes the center of this octree.
      */
 
-  	}, {
-  		key: "center",
-  		value: function center() {
+  		value: function getCenter() {
   			return this.root.center();
+  		}
+
+  		/**
+     * Calculates the size of this octree.
+     *
+     * @method getDimensions
+     * @return {Vector3} A new vector that describes the size of this octree.
+     */
+
+  	}, {
+  		key: "getDimensions",
+  		value: function getDimensions() {
+  			return this.root.dimensions();
   		}
 
   		/**
@@ -1578,7 +1634,7 @@
   		function OctreeHelper(tree) {
   				classCallCheck(this, OctreeHelper);
 
-  				var _this = possibleConstructorReturn(this, Object.getPrototypeOf(OctreeHelper).call(this));
+  				var _this = possibleConstructorReturn(this, (OctreeHelper.__proto__ || Object.getPrototypeOf(OctreeHelper)).call(this));
 
   				_this.name = "OctreeHelper";
 
@@ -1789,6 +1845,13 @@
   }(THREE.Object3D);
 
   /**
+   * Core components.
+   *
+   * @module octree
+   * @submodule core
+   */
+
+  /**
    * An octant that maintains points.
    *
    * @class PointOctant
@@ -1812,7 +1875,7 @@
        * @type Array
        */
 
-  				var _this = possibleConstructorReturn(this, Object.getPrototypeOf(PointOctant).call(this, min, max));
+  				var _this = possibleConstructorReturn(this, (PointOctant.__proto__ || Object.getPrototypeOf(PointOctant)).call(this, min, max));
 
   				_this.points = null;
 
@@ -1892,7 +1955,7 @@
   				key: "distanceToCenterSquared",
   				value: function distanceToCenterSquared(p) {
 
-  						var center = this.center();
+  						var center = this.getCenter();
 
   						var dx = p.x - center.x;
   						var dy = p.y - center.x;
@@ -2180,7 +2243,7 @@
   		function PointOctree(min, max, bias, maxPoints, maxDepth) {
   				classCallCheck(this, PointOctree);
 
-  				var _this = possibleConstructorReturn(this, Object.getPrototypeOf(PointOctree).call(this));
+  				var _this = possibleConstructorReturn(this, (PointOctree.__proto__ || Object.getPrototypeOf(PointOctree)).call(this));
 
   				_this.root = new PointOctant(min, max);
 
@@ -2525,7 +2588,7 @@
 
   						var octants = [];
 
-  						get(Object.getPrototypeOf(PointOctree.prototype), "raycast", this).call(this, raycaster, octants);
+  						get$1(PointOctree.prototype.__proto__ || Object.getPrototypeOf(PointOctree.prototype), "raycast", this).call(this, raycaster, octants);
 
   						if (octants.length > 0) {
 
@@ -2599,6 +2662,20 @@
   		}]);
   		return PointOctree;
   }(Octree);
+
+  /**
+   * Point-oriented octree components.
+   *
+   * @module octree
+   * @submodule points
+   */
+
+  /**
+   * Exposure of the library components.
+   *
+   * @module octree
+   * @main octree
+   */
 
   exports.CubicOctant = CubicOctant;
   exports.Octant = Octant;
