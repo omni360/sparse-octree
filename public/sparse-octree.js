@@ -1,5 +1,5 @@
 /**
- * sparse-octree v2.3.1 build Sep 17 2016
+ * sparse-octree v2.4.0 build Oct 01 2016
  * https://github.com/vanruesc/sparse-octree
  * Copyright 2016 Raoul van Rüschen, Zlib
  */
@@ -914,11 +914,13 @@
    * @submodule core
    * @constructor
    * @param {Vector3} min - The lower bounds.
-   * @param {Number} size - The size of the octant.
+   * @param {Number} [size=0] - The size of the octant.
    */
 
   var CubicOctant = function () {
-  		function CubicOctant(min, size) {
+  		function CubicOctant() {
+  				var min = arguments.length <= 0 || arguments[0] === undefined ? new Vector3() : arguments[0];
+  				var size = arguments.length <= 1 || arguments[1] === undefined ? 0 : arguments[1];
   				classCallCheck(this, CubicOctant);
 
 
@@ -929,7 +931,7 @@
        * @type Vector3
        */
 
-  				this.min = min !== undefined ? min : new Vector3();
+  				this.min = min;
 
   				/**
        * The size of this octant.
@@ -938,7 +940,7 @@
        * @type Number
        */
 
-  				this.size = size !== undefined ? size : 0;
+  				this.size = size;
 
   				/**
        * The children of this octant.
@@ -1052,6 +1054,190 @@
   				}
   		}]);
   		return CubicOctant;
+  }();
+
+  /**
+   * A bounding box.
+   *
+   * This class is a copy of THREE.Box3. It can be removed as soon as three.js
+   * starts supporting ES6 modules.
+   *
+   * @class Box3
+   * @submodule math
+   * @constructor
+   */
+
+  var Box3 = function () {
+  	function Box3(min, max) {
+  		classCallCheck(this, Box3);
+
+
+  		/**
+     * The min bounds.
+     *
+     * @property min
+     * @type Vector3
+     */
+
+  		this.min = min !== undefined ? min : new Vector3(Infinity, Infinity, Infinity);
+
+  		/**
+     * The max bounds.
+     *
+     * @property max
+     * @type Vector3
+     */
+
+  		this.max = max !== undefined ? max : new Vector3(-Infinity, -Infinity, -Infinity);
+  	}
+
+  	/**
+    * Sets the values of this box.
+    *
+    * @method set
+    * @param {Number} min - The min bounds.
+    * @param {Number} max - The max bounds.
+    * @return {Matrix3} This box.
+    */
+
+  	createClass(Box3, [{
+  		key: "set",
+  		value: function set(min, max) {
+
+  			this.min.copy(min);
+  			this.max.copy(max);
+
+  			return this;
+  		}
+
+  		/**
+     * Copies the values of a given box.
+     *
+     * @method copy
+     * @param {Matrix3} b - A box.
+     * @return {Box3} This box.
+     */
+
+  	}, {
+  		key: "copy",
+  		value: function copy(b) {
+
+  			this.min.copy(b.min);
+  			this.max.copy(b.max);
+
+  			return this;
+  		}
+
+  		/**
+     * Clones this matrix.
+     *
+     * @method clone
+     * @return {Matrix3} A clone of this matrix.
+     */
+
+  	}, {
+  		key: "clone",
+  		value: function clone() {
+
+  			return new this.constructor().copy(this);
+  		}
+
+  		/**
+     * Expands this box by the given point.
+     *
+     * @method expandByPoint
+     * @param {Matrix3} p - A point.
+     * @return {Box3} This box.
+     */
+
+  	}, {
+  		key: "expandByPoint",
+  		value: function expandByPoint(p) {
+
+  			this.min.min(p);
+  			this.max.max(p);
+
+  			return this;
+  		}
+
+  		/**
+     * Expands this box by combining it with the given one.
+     *
+     * @method union
+     * @param {Box3} b - A box.
+     * @return {Box3} This box.
+     */
+
+  	}, {
+  		key: "union",
+  		value: function union(b) {
+
+  			this.min.min(b.min);
+  			this.max.max(b.max);
+
+  			return this;
+  		}
+
+  		/**
+     * Defines this box by the given points.
+     *
+     * @method setFromPoints
+     * @param {Array} points - The points.
+     * @return {Box3} This box.
+     */
+
+  	}, {
+  		key: "setFromPoints",
+  		value: function setFromPoints(points) {
+
+  			var i = void 0,
+  			    l = void 0;
+
+  			for (i = 0, l = points.length; i < l; ++i) {
+
+  				this.expandByPoint(points[i]);
+  			}
+
+  			return this;
+  		}
+
+  		/**
+     * Defines this box by the given center and size.
+     *
+     * @method setFromCenterAndSize
+     * @param {Vector3} center - The center.
+     * @param {Number} size - The size.
+     * @return {Box3} This box.
+     */
+
+  	}, {
+  		key: "setFromCenterAndSize",
+  		value: function setFromCenterAndSize(center, size) {
+
+  			var halfSize = size.clone().multiplyScalar(0.5);
+
+  			this.min.copy(center).sub(halfSize);
+  			this.max.copy(center).add(halfSize);
+
+  			return this;
+  		}
+
+  		/**
+     * Checks if this box intersects with the given one.
+     *
+     * @method intersectsBox
+     * @param {Matrix3} box - A box.
+     * @return {Boolean} Whether the boxes intersect.
+     */
+
+  	}, {
+  		key: "intersectsBox",
+  		value: function intersectsBox(box) {
+
+  			return !(box.max.x < this.min.x || box.min.x > this.max.x || box.max.y < this.min.y || box.min.y > this.max.y || box.max.z < this.min.z || box.min.z > this.max.z);
+  		}
+  	}]);
+  	return Box3;
   }();
 
   /**
@@ -1440,13 +1626,13 @@
   		/**
      * Calculates the current depth of this octree.
      *
-     * @method depth
+     * @method getDepth
      * @return {Number} The depth.
      */
 
   	}, {
-  		key: "depth",
-  		value: function depth() {
+  		key: "getDepth",
+  		value: function getDepth() {
 
   			var h0 = [this.root];
   			var h1 = [];
@@ -1494,6 +1680,7 @@
 
   			var result = [];
   			var heap = [this.root];
+  			var box = new Box3();
 
   			var octant = void 0,
   			    children = void 0;
@@ -1503,7 +1690,11 @@
   				octant = heap.pop();
   				children = octant.children;
 
-  				if (region.intersectsBox(octant)) {
+  				// Cache the computed max vector of cubic octants.
+  				box.min = octant.min;
+  				box.max = octant.max;
+
+  				if (region.intersectsBox(box)) {
 
   					if (children !== null) {
 
@@ -1625,13 +1816,14 @@
    * @submodule core
    * @constructor
    * @extends Object3D
-   * @param {Octree} tree - The octree to visualise.
+   * @param {Octree} [tree=null] - The octree to visualise.
    */
 
   var OctreeHelper = function (_THREE$Object3D) {
   		inherits(OctreeHelper, _THREE$Object3D);
 
-  		function OctreeHelper(tree) {
+  		function OctreeHelper() {
+  				var tree = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
   				classCallCheck(this, OctreeHelper);
 
   				var _this = possibleConstructorReturn(this, (OctreeHelper.__proto__ || Object.getPrototypeOf(OctreeHelper)).call(this));
@@ -1645,7 +1837,7 @@
        * @type Octree
        */
 
-  				_this.tree = tree !== undefined ? tree : null;
+  				_this.tree = tree;
 
   				return _this;
   		}
@@ -1662,7 +1854,7 @@
   				value: function update() {
 
   						var vertexMap = new Map();
-  						var depth = this.tree !== null ? this.tree.depth() : -1;
+  						var depth = this.tree !== null ? this.tree.getDepth() : -1;
 
   						var connections = [
   						/* 0 */[1, 4],
@@ -2240,7 +2432,10 @@
   var PointOctree = function (_Octree) {
   		inherits(PointOctree, _Octree);
 
-  		function PointOctree(min, max, bias, maxPoints, maxDepth) {
+  		function PointOctree(min, max) {
+  				var bias = arguments.length <= 2 || arguments[2] === undefined ? 0.0 : arguments[2];
+  				var maxPoints = arguments.length <= 3 || arguments[3] === undefined ? 8 : arguments[3];
+  				var maxDepth = arguments.length <= 4 || arguments[4] === undefined ? 8 : arguments[4];
   				classCallCheck(this, PointOctree);
 
   				var _this = possibleConstructorReturn(this, (PointOctree.__proto__ || Object.getPrototypeOf(PointOctree)).call(this));
@@ -2256,7 +2451,7 @@
        * @default 0.0
        */
 
-  				_this.bias = bias !== undefined ? Math.max(0.0, bias) : 0.0;
+  				_this.bias = Math.max(0.0, bias);
 
   				/**
        * The proximity threshold squared.
@@ -2268,21 +2463,6 @@
        */
 
   				_this.biasSquared = _this.bias * _this.bias;
-
-  				/**
-       * The maximum tree depth level.
-       *
-       * It's possible to use Infinity, but be aware that allowing infinitely
-       * small octants can have a negative impact on performance.
-       * Finding a value that works best for a specific scene is advisable.
-       *
-       * @property maxDepth
-       * @type Number
-       * @private
-       * @default 8
-       */
-
-  				_this.maxDepth = maxDepth !== undefined ? Math.max(0, Math.round(maxDepth)) : 8;
 
   				/**
        * Number of points per octant before a split occurs.
@@ -2297,7 +2477,22 @@
        * @default 8
        */
 
-  				_this.maxPoints = maxPoints !== undefined ? Math.max(1, Math.round(maxPoints)) : 8;
+  				_this.maxPoints = Math.max(1, Math.round(maxPoints));
+
+  				/**
+       * The maximum tree depth level.
+       *
+       * It's possible to use Infinity, but be aware that allowing infinitely
+       * small octants can have a negative impact on performance.
+       * Finding a value that works best for a specific scene is advisable.
+       *
+       * @property maxDepth
+       * @type Number
+       * @private
+       * @default 8
+       */
+
+  				_this.maxDepth = Math.max(0, Math.round(maxDepth));
 
   				return _this;
   		}
@@ -2537,14 +2732,10 @@
 
   		}, {
   				key: "findNearestPoint",
-  				value: function findNearestPoint(p, maxDistance, skipSelf) {
+  				value: function findNearestPoint(p) {
+  						var maxDistance = arguments.length <= 1 || arguments[1] === undefined ? Infinity : arguments[1];
+  						var skipSelf = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
 
-  						if (maxDistance === undefined) {
-  								maxDistance = Infinity;
-  						}
-  						if (skipSelf === undefined) {
-  								skipSelf = false;
-  						}
 
   						return this.root.findNearestPoint(p, maxDistance, skipSelf);
   				}
@@ -2561,11 +2752,9 @@
 
   		}, {
   				key: "findPoints",
-  				value: function findPoints(p, r, skipSelf) {
+  				value: function findPoints(p, r) {
+  						var skipSelf = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
 
-  						if (skipSelf === undefined) {
-  								skipSelf = false;
-  						}
 
   						var result = [];
 

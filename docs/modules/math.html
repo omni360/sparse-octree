@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>src\core\cubic-octant.js - sparse-octree</title>
+    <title>math - sparse-octree</title>
     <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
     <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
@@ -88,158 +88,41 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-<h1 class="file-heading">File: src\core\cubic-octant.js</h1>
+<h1>math Module</h1>
+<div class="box clearfix meta">
 
-<div class="file">
-    <pre class="code prettyprint linenums">
-import { PATTERN } from &quot;./octant.js&quot;;
-import { Vector3 } from &quot;../vector3.js&quot;;
 
-/**
- * A cubic octant.
- *
- * @class CubicOctant
- * @submodule core
- * @constructor
- * @param {Vector3} min - The lower bounds.
- * @param {Number} [size=0] - The size of the octant.
- */
+        <div class="foundat">
+            Defined in: <a href="../files/src_box3.js.html#l3"><code>src\box3.js:3</code></a>
+        </div>
 
-export class CubicOctant {
+</div>
 
-	constructor(min = new Vector3(), size = 0) {
 
-		/**
-		 * The lower bounds of this octant.
-		 *
-		 * @property min
-		 * @type Vector3
-		 */
+<div class="box intro">
+    <p>A bounding box.</p>
+<p>This class is a copy of THREE.Box3. It can be removed as soon as three.js
+starts supporting ES6 modules.</p>
 
-		this.min = min;
+</div>
 
-		/**
-		 * The size of this octant.
-		 *
-		 * @property size
-		 * @type Number
-		 */
 
-		this.size = size;
+<div class="yui3-g">
+    <div class="yui3-u-1-2">
+            <p>This module provides the following classes:</p>
 
-		/**
-		 * The children of this octant.
-		 *
-		 * @property children
-		 * @type Array
-		 * @default null
-		 */
+            <ul class="module-classes">
+                <li class="module-class">
+                    <a href="../classes/Box3.html">
+                        Box3
+                    </a>
+                </li>
+            </ul>
+    </div>
 
-		this.children = null;
 
-	}
-
-	/**
-	 * The upper bounds of this octant.
-	 *
-	 * @property max
-	 * @type Vector3
-	 */
-
-	get max() { return this.min.clone().addScalar(this.size); }
-
-	/**
-	 * Computes the center of this octant.
-	 *
-	 * @method getCenter
-	 * @return {Vector3} A new vector that describes the center of this octant.
-	 */
-
-	getCenter() { return this.min.clone().addScalar(this.size * 0.5); }
-
-	/**
-	 * Returns the size of this octant as a vector.
-	 *
-	 * @method getDimensions
-	 * @return {Vector3} A new vector that describes the size of this octant.
-	 */
-
-	getDimensions() { return new Vector3(this.size, this.size, this.size); }
-
-	/**
-	 * Splits this octant into eight smaller ones.
-	 *
-	 * @method split
-	 * @param {Array} [octants] - A list of octants to recycle.
-	 */
-
-	split(octants) {
-
-		const min = this.min;
-		const mid = this.getCenter();
-		const halfSize = this.size * 0.5;
-
-		let i, j;
-		let l = 0;
-		let combination;
-
-		let v, child, octant;
-
-		if(Array.isArray(octants)) {
-
-			v = new Vector3();
-			l = octants.length;
-
-		}
-
-		this.children = [];
-
-		for(i = 0; i &lt; 8; ++i) {
-
-			combination = PATTERN[i];
-			octant = null;
-
-			if(l &gt; 0) {
-
-				v.fromArray(combination).multiplyScalar(halfSize).add(min);
-
-				// Find an octant that matches the current combination.
-				for(j = 0; j &lt; l; ++j) {
-
-					child = octants[j];
-
-					if(child !== null &amp;&amp; child.size === halfSize &amp;&amp; v.equals(child.min)) {
-
-						octant = child;
-						octants[j] = null;
-
-						break;
-
-					}
-
-				}
-
-			}
-
-			this.children.push((octant !== null) ? octant : new this.constructor(
-
-				new Vector3(
-					((combination[0] === 0) ? min.x : mid.x),
-					((combination[1] === 0) ? min.y : mid.y),
-					((combination[2] === 0) ? min.z : mid.z)
-				),
-
-				halfSize
-
-			));
-
-		}
-
-	}
-
-}
-
-    </pre>
+    <div class="yui3-u-1-2">
+    </div>
 </div>
                     </div>
                 </div>

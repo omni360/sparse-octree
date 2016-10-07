@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>src\core\cubic-octant.js - sparse-octree</title>
+    <title>src\box3.js - sparse-octree</title>
     <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
     <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
@@ -88,152 +88,186 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-<h1 class="file-heading">File: src\core\cubic-octant.js</h1>
+<h1 class="file-heading">File: src\box3.js</h1>
 
 <div class="file">
     <pre class="code prettyprint linenums">
-import { PATTERN } from &quot;./octant.js&quot;;
-import { Vector3 } from &quot;../vector3.js&quot;;
+import { Vector3 } from &quot;./vector3&quot;;
 
 /**
- * A cubic octant.
+ * A bounding box.
  *
- * @class CubicOctant
- * @submodule core
+ * This class is a copy of THREE.Box3. It can be removed as soon as three.js
+ * starts supporting ES6 modules.
+ *
+ * @class Box3
+ * @submodule math
  * @constructor
- * @param {Vector3} min - The lower bounds.
- * @param {Number} [size=0] - The size of the octant.
  */
 
-export class CubicOctant {
+export class Box3 {
 
-	constructor(min = new Vector3(), size = 0) {
+	constructor(min, max) {
 
 		/**
-		 * The lower bounds of this octant.
+		 * The min bounds.
 		 *
 		 * @property min
 		 * @type Vector3
 		 */
 
-		this.min = min;
+		this.min = (min !== undefined) ? min : new Vector3(Infinity, Infinity, Infinity);
 
 		/**
-		 * The size of this octant.
+		 * The max bounds.
 		 *
-		 * @property size
-		 * @type Number
+		 * @property max
+		 * @type Vector3
 		 */
 
-		this.size = size;
-
-		/**
-		 * The children of this octant.
-		 *
-		 * @property children
-		 * @type Array
-		 * @default null
-		 */
-
-		this.children = null;
+		this.max = (max !== undefined) ? max : new Vector3(-Infinity, -Infinity, -Infinity);
 
 	}
 
 	/**
-	 * The upper bounds of this octant.
+	 * Sets the values of this box.
 	 *
-	 * @property max
-	 * @type Vector3
+	 * @method set
+	 * @param {Number} min - The min bounds.
+	 * @param {Number} max - The max bounds.
+	 * @return {Matrix3} This box.
 	 */
 
-	get max() { return this.min.clone().addScalar(this.size); }
+	set(min, max) {
+
+		this.min.copy(min);
+		this.max.copy(max);
+
+		return this;
+
+	}
 
 	/**
-	 * Computes the center of this octant.
+	 * Copies the values of a given box.
 	 *
-	 * @method getCenter
-	 * @return {Vector3} A new vector that describes the center of this octant.
+	 * @method copy
+	 * @param {Matrix3} b - A box.
+	 * @return {Box3} This box.
 	 */
 
-	getCenter() { return this.min.clone().addScalar(this.size * 0.5); }
+	copy(b) {
+
+		this.min.copy(b.min);
+		this.max.copy(b.max);
+
+		return this;
+
+	}
 
 	/**
-	 * Returns the size of this octant as a vector.
+	 * Clones this matrix.
 	 *
-	 * @method getDimensions
-	 * @return {Vector3} A new vector that describes the size of this octant.
+	 * @method clone
+	 * @return {Matrix3} A clone of this matrix.
 	 */
 
-	getDimensions() { return new Vector3(this.size, this.size, this.size); }
+	clone() {
+
+		return new this.constructor().copy(this);
+
+	}
 
 	/**
-	 * Splits this octant into eight smaller ones.
+	 * Expands this box by the given point.
 	 *
-	 * @method split
-	 * @param {Array} [octants] - A list of octants to recycle.
+	 * @method expandByPoint
+	 * @param {Matrix3} p - A point.
+	 * @return {Box3} This box.
 	 */
 
-	split(octants) {
+	expandByPoint(p) {
 
-		const min = this.min;
-		const mid = this.getCenter();
-		const halfSize = this.size * 0.5;
+		this.min.min(p);
+		this.max.max(p);
 
-		let i, j;
-		let l = 0;
-		let combination;
+		return this;
 
-		let v, child, octant;
+	}
 
-		if(Array.isArray(octants)) {
+	/**
+	 * Expands this box by combining it with the given one.
+	 *
+	 * @method union
+	 * @param {Box3} b - A box.
+	 * @return {Box3} This box.
+	 */
 
-			v = new Vector3();
-			l = octants.length;
+	union(b) {
+
+		this.min.min(b.min);
+		this.max.max(b.max);
+
+		return this;
+
+	}
+
+	/**
+	 * Defines this box by the given points.
+	 *
+	 * @method setFromPoints
+	 * @param {Array} points - The points.
+	 * @return {Box3} This box.
+	 */
+
+	setFromPoints(points) {
+
+		let i, l;
+
+		for(i = 0, l = points.length; i &lt; l; ++i) {
+
+			this.expandByPoint(points[i]);
 
 		}
 
-		this.children = [];
+		return this;
 
-		for(i = 0; i &lt; 8; ++i) {
+	}
 
-			combination = PATTERN[i];
-			octant = null;
+	/**
+	 * Defines this box by the given center and size.
+	 *
+	 * @method setFromCenterAndSize
+	 * @param {Vector3} center - The center.
+	 * @param {Number} size - The size.
+	 * @return {Box3} This box.
+	 */
 
-			if(l &gt; 0) {
+	setFromCenterAndSize(center, size) {
 
-				v.fromArray(combination).multiplyScalar(halfSize).add(min);
+		const halfSize = size.clone().multiplyScalar(0.5);
 
-				// Find an octant that matches the current combination.
-				for(j = 0; j &lt; l; ++j) {
+		this.min.copy(center).sub(halfSize);
+		this.max.copy(center).add(halfSize);
 
-					child = octants[j];
+		return this;
 
-					if(child !== null &amp;&amp; child.size === halfSize &amp;&amp; v.equals(child.min)) {
+	}
 
-						octant = child;
-						octants[j] = null;
+	/**
+	 * Checks if this box intersects with the given one.
+	 *
+	 * @method intersectsBox
+	 * @param {Matrix3} box - A box.
+	 * @return {Boolean} Whether the boxes intersect.
+	 */
 
-						break;
+	intersectsBox(box) {
 
-					}
-
-				}
-
-			}
-
-			this.children.push((octant !== null) ? octant : new this.constructor(
-
-				new Vector3(
-					((combination[0] === 0) ? min.x : mid.x),
-					((combination[1] === 0) ? min.y : mid.y),
-					((combination[2] === 0) ? min.z : mid.z)
-				),
-
-				halfSize
-
-			));
-
-		}
+		return !(
+			box.max.x &lt; this.min.x || box.min.x &gt; this.max.x ||
+			box.max.y &lt; this.min.y || box.min.y &gt; this.max.y ||
+			box.max.z &lt; this.min.z || box.min.z &gt; this.max.z
+		);
 
 	}
 

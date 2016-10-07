@@ -9,12 +9,12 @@ import THREE from "three";
  * @submodule core
  * @constructor
  * @extends Object3D
- * @param {Octree} tree - The octree to visualise.
+ * @param {Octree} [tree=null] - The octree to visualise.
  */
 
 export class OctreeHelper extends THREE.Object3D {
 
-	constructor(tree) {
+	constructor(tree = null) {
 
 		super();
 
@@ -27,7 +27,7 @@ export class OctreeHelper extends THREE.Object3D {
 		 * @type Octree
 		 */
 
-		this.tree = (tree !== undefined) ? tree : null;
+		this.tree = tree;
 
 	}
 
@@ -41,7 +41,7 @@ export class OctreeHelper extends THREE.Object3D {
 	update() {
 
 		const vertexMap = new Map();
-		const depth = (this.tree !== null) ? this.tree.depth() : -1;
+		const depth = (this.tree !== null) ? this.tree.getDepth() : -1;
 
 		const connections = [
 			/* 0 */ [1, 4],
