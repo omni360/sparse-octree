@@ -1,4 +1,4 @@
-import { Vector3 } from "../vector3.js";
+import { Vector3 } from "../math/vector3.js";
 
 /**
  * An octant.
@@ -12,7 +12,7 @@ import { Vector3 } from "../vector3.js";
 
 export class Octant {
 
-	constructor(min, max) {
+	constructor(min = new Vector3(), max = new Vector3()) {
 
 		/**
 		 * The lower bounds of this octant.
@@ -21,7 +21,7 @@ export class Octant {
 		 * @type Vector3
 		 */
 
-		this.min = (min !== undefined) ? min : new Vector3();
+		this.min = min;
 
 		/**
 		 * The upper bounds of the octant.
@@ -30,7 +30,7 @@ export class Octant {
 		 * @type Vector3
 		 */
 
-		this.max = (max !== undefined) ? max : new Vector3();
+		this.max = max;
 
 		/**
 		 * The children of this octant.
@@ -174,3 +174,33 @@ export const PATTERN = [
 
 ];
 
+/**
+ * Describes all possible octant corner connections.
+ *
+ * @property EDGES
+ * @type Array
+ * @static
+ * @final
+ */
+
+export const EDGES = [
+
+	// X-Axis.
+	new Uint8Array([0, 4]),
+	new Uint8Array([1, 5]),
+	new Uint8Array([2, 6]),
+	new Uint8Array([3, 7]),
+
+	// Y-Axis.
+	new Uint8Array([0, 2]),
+	new Uint8Array([1, 3]),
+	new Uint8Array([4, 6]),
+	new Uint8Array([5, 7]),
+
+	// Z-Axis.
+	new Uint8Array([0, 1]),
+	new Uint8Array([2, 3]),
+	new Uint8Array([4, 5]),
+	new Uint8Array([6, 7])
+
+];
