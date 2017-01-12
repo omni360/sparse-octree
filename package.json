@@ -1,6 +1,6 @@
 {
 	"name": "sparse-octree",
-	"version": "2.5.1",
+	"version": "2.6.0",
 	"description": "A sparse octree data structure.",
 	"homepage": "https://github.com/vanruesc/sparse-octree",
 	"main": "build/sparse-octree.js",
@@ -37,7 +37,7 @@
 	],
 
 	"scripts": {
-		"test": "grunt"
+		"test": "grunt --production"
 	},
 
 	"engines": {
@@ -45,11 +45,12 @@
 	},
 
 	"dependencies": {
-		"three": "0.82.x"
+		"iterator-result": "0.0.x",
+		"three": "0.83.x"
 	},
 
 	"devDependencies": {
-		"babel-preset-es2015-rollup": "1.2.x",
+		"babel-preset-es2015-rollup": "3.0.x",
 		"grunt": "1.x.x",
 		"grunt-cli": "1.2.x",
 		"grunt-contrib-nodeunit": "1.0.x",
@@ -60,7 +61,7 @@
 		"grunt-rollup": "1.0.x",
 		"jit-grunt": "0.10.x",
 		"load-grunt-config": "0.19.x",
-		"rollup-plugin-babel": "2.6.x",
+		"rollup-plugin-babel": "2.7.x",
 		"rollup-plugin-node-resolve": "2.0.x",
 		"time-grunt": "1.4.x"
 	},

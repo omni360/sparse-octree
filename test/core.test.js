@@ -3,7 +3,15 @@
 const lib = require("../build/sparse-octree");
 const THREE = require("three");
 
-const box = new THREE.Box3(new THREE.Vector3(-1, -1, -1), new THREE.Vector3(1, 1, 1));
+const box = new THREE.Box3(
+	new THREE.Vector3(-1, -1, -1),
+	new THREE.Vector3(1, 1, 1)
+);
+
+const region = new THREE.Box3(
+	new THREE.Vector3(0.1, 0.1, 0.1),
+	new THREE.Vector3(0.2, 0.2, 0.2)
+);
 
 module.exports = {
 
@@ -186,26 +194,75 @@ module.exports = {
 
 	},
 
-	"OctreeHelper": {
+	"OctreeIterator": {
 
 		"can be instantiated": function(test) {
 
-			const helper = new lib.OctreeHelper();
+			const iterator = new lib.OctreeIterator(new lib.Octree());
 
-			test.ok(helper, "helper");
+			test.ok(iterator, "iterator");
 			test.done();
 
 		},
 
-		"creates geometry for each tree level": function(test) {
+		"iterates over all leaf octants": function(test) {
 
 			const octree = new lib.Octree(box.min, box.max);
+			const iterator = octree.leaves();
+
+			let i = 0;
 
 			octree.root.split();
 
-			const helper = new lib.OctreeHelper(octree);
+			while(!iterator.next().done) {
 
-			test.equal(helper.children.length, 2, "should have a child for each level");
+				++i;
+
+			}
+
+			test.equal(i, 8, "should return eight leaf octants");
+			test.done();
+
+		},
+
+		"can cull leaf octants": function(test) {
+
+			const octree = new lib.Octree(box.min, box.max);
+			const iterator = octree.leaves(region);
+
+			let i = 0;
+
+			octree.root.split();
+
+			while(!iterator.next().done) {
+
+				++i;
+
+			}
+
+			test.equal(i, 1, "should return one leaf octant");
+			test.done();
+
+		}
+
+	},
+
+	"OctreeRaycaster": {
+
+		"can find intersecting octants": function(test) {
+
+			const octree = new lib.Octree(box.min, box.max);
+			const raycaster = new THREE.Raycaster(
+				new THREE.Vector3(0.5, -1, 0.5),
+				new THREE.Vector3(1, 1, 1)
+			);
+
+			octree.root.split();
+
+			const intersects = octree.raycast(raycaster);
+
+			test.equal(intersects.length, 1, "should return one intersecting octant");
+			test.equal(intersects[0], octree.root.children[5], "should return the sixth child");
 			test.done();
 
 		}

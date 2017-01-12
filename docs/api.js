@@ -6,9 +6,10 @@ YUI.add("yuidoc-meta", function(Y) {
         "Octant",
         "Octree",
         "OctreeHelper",
+        "OctreeIterator",
+        "OctreeRaycaster",
         "PointOctant",
         "PointOctree",
-        "Raycasting",
         "Vector3"
     ],
     "modules": [
